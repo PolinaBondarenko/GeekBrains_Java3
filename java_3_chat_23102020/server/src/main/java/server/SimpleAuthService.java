@@ -46,11 +46,11 @@ public class SimpleAuthService implements AuthService {
             }
         }
         users.add(new UserData(login, password, nickname));
-        SQLHendler.insert(login, password, nickname);
         return true;
     }
 
-    public boolean replaceNick(String oldNick, String newNick) {
-        return SQLHendler.updateNick(oldNick, newNick);
+    @Override
+    public boolean changeNick(String oldNickname, String newNickname) {
+        return false;
     }
 }

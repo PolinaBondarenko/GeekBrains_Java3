@@ -5,12 +5,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class ClientHandler {
     DataInputStream in;
     DataOutputStream out;
     Server server;
     Socket socket;
+    private static final Logger logger = LogManager.getLogManager().getLogger(ClientHandler.class.getName());
 
     private String nickname;
     private String login;
@@ -21,11 +25,12 @@ public class ClientHandler {
             this.socket = socket;
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
-            System.out.println("Client connected " + socket.getRemoteSocketAddress());
+            logger.log(Level.CONFIG, "Client connected " + socket.getRemoteSocketAddress());
+            //System.out.println("Client connected " + socket.getRemoteSocketAddress());
 
             new Thread(() -> {
                 try {
-                    socket.setSoTimeout(5000);
+                    socket.setSoTimeout(120000);
 
                     //цикл аутентификации
                     while (true) {
@@ -84,6 +89,26 @@ public class ClientHandler {
                                 }
                                 server.privateMsg(this, token[1], token[2]);
                             }
+                            //==============//
+                            if (str.startsWith("/chnick ")) {
+                                String[] token = str.split(" ", 2);
+                                if (token.length < 2) {
+                                    continue;
+                                }
+                                if (token[1].contains(" ")) {
+                                    sendMsg("Ник не может содержать пробелов");
+                                    continue;
+                                }
+                                if (server.getAuthService().changeNick(this.nickname, token[1])) {
+                                    sendMsg("/yournickis " + token[1]);
+                                    sendMsg("Ваш ник изменен на " + token[1]);
+                                    this.nickname = token[1];
+                                    server.broadcastClientList();
+                                } else {
+                                    sendMsg("Не удалось изменить ник. Ник " + token[1] + " уже существует");
+                                }
+                            }
+                            //==============//
                         } else {
                             server.broadcastMsg(this, str);
                         }
@@ -91,12 +116,14 @@ public class ClientHandler {
 
                 } catch (SocketTimeoutException e) {
                     sendMsg("/end");
-                    System.out.println("Client disconnected by timeout");
+                    logger.log(Level.INFO, "Client disconnected by timeout");
+                    //System.out.println("Client disconnected by timeout");
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
                     server.unsubscribe(this);
-                    System.out.println("Client disconnected " + socket.getRemoteSocketAddress());
+                    logger.log(Level.INFO, "Client disconnected " + socket.getRemoteSocketAddress());
+                    //System.out.println("Client disconnected " + socket.getRemoteSocketAddress());
                     try {
                         socket.close();
                         in.close();

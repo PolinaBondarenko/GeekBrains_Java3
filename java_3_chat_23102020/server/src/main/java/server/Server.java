@@ -3,30 +3,35 @@ package server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class Server {
     private List<ClientHandler> clients;
     private AuthService authService;
+    private static final Logger logger = LogManager.getLogManager().getLogger(Server.class.getName());
 
     public Server() {
         clients = new CopyOnWriteArrayList<>();
-        authService = new SimpleAuthService();
+//        authService = new SimpleAuthService();
+        //==============//
+        if (!SQLHandler.connect()) {
+            throw new RuntimeException("Не удалось подключиться к БД");
+        }
+        authService = new DBAuthServise();
+        //==============//
+
         ServerSocket server = null;
         Socket socket = null;
         final int PORT = 8189;
 
-        //подключение БД
-        SQLHendler.connectToDb();
-
         try {
             server = new ServerSocket(PORT);
-            System.out.println("Server started");
+            logger.log(Level.INFO, "Server started");
+            //System.out.println("Server started");
 
             while (true) {
                 socket = server.accept();
@@ -36,6 +41,7 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            SQLHandler.disconnect();
             try {
                 socket.close();
             } catch (IOException e) {
@@ -46,8 +52,6 @@ public class Server {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            //отключение БД
-            SQLHendler.disconnect();
         }
     }
 
