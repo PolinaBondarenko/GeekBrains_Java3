@@ -5,6 +5,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface Test {
-int property() default 5;
+public @interface BeforeSuite {
+
 }
